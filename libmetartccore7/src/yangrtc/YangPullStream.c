@@ -230,9 +230,18 @@ static int32_t yang_on_rtp(YangRtcContext *context, YangRtcPullStream *play,
 		int preview = play->rtp.nb; if(preview>32) preview=32;
 		char hex[32*3+4]; int hi=0; for(int i=0;i<preview;i++){ hi+=snprintf(hex+hi,sizeof(hex)-hi,"%02X ",(uint8_t)play->rtp.payload[i]); if(hi>=(int)sizeof(hex)-4) break; }
 		if(preview<play->rtp.nb) snprintf(hex+hi,sizeof(hex)-hi,"...");
-		if(h->extensions&&h->extensions->extmap_size>0){
-			yang_trace("[RTP] ssrc=%u seq=%u ts=%u pt=%u m=%d ext=%d size=%d payload=%s",h->ssrc,h->sequence,h->timestamp,h->payload_type,h->marker,h->extensions->extmap_size,play->rtp.nb,hex);
-			for(int ei=0;ei<h->extensions->extmap_size;ei++){ YangRtpExt* e=&h->extensions->extmaps[ei]; int plen=e->len; if(plen>0){ int pprev=plen; if(pprev>32) pprev=32; char ehex[32*3+4]; int hj=0; for(int j=0;j<pprev;j++){ hj+=snprintf(ehex+hj,sizeof(ehex)-hj,"%02X ",(uint8_t)e->data[j]); if(hj>=(int)sizeof(ehex)-4) break;} if(pprev<plen) snprintf(ehex+hj,sizeof(ehex)-hj,"..."); yang_trace("[RTP][ext] id=%d len=%d %s",e->id,plen,ehex);} else { yang_trace("[RTP][ext] id=%d len=0",e->id);} }
+		if(h->extensions && h->extensions->has_ext){
+			yang_trace("[RTP] ssrc=%u seq=%u ts=%u pt=%u m=%d ext=1 size=%d payload=%s",h->ssrc,h->sequence,h->timestamp,h->payload_type,h->marker,play->rtp.nb,hex);
+			// TWCC
+#if Yang_Enable_TWCC
+			if(h->extensions->twcc.has_twcc){
+				yang_trace("[RTP][ext][twcc] id=%u sn=%u",h->extensions->twcc.id,h->extensions->twcc.sn);
+			}
+#endif
+			// Audio level extension
+			if(h->extensions->audio_level.has_ext){
+				yang_trace("[RTP][ext][audio-level] id=%d val=%u",h->extensions->audio_level.id,h->extensions->audio_level.value);
+			}
 		}else{
 			yang_trace("[RTP] ssrc=%u seq=%u ts=%u pt=%u m=%d size=%d payload=%s",h->ssrc,h->sequence,h->timestamp,h->payload_type,h->marker,play->rtp.nb,hex);
 		}
