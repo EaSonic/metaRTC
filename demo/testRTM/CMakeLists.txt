@@ -20,6 +20,15 @@ link_directories(${METARTC_LIB_DIR})
 
 add_executable(testRTM main.cpp RtpFlvWriter.cpp RtpFlvWriter.h)
 
-target_link_libraries(testRTM metartccore7 yangwhip7 pthread m dl)
+# 链接顺序: 先写依赖其它库的(whip -> metartc7 -> metartccore7), 然后系统/第三方库
+target_link_libraries(testRTM
+  yangwhip7
+  metartc7
+  metartccore7
+  ssl crypto
+  srtp2 usrsctp
+  opus speexdsp
+  pthread m dl
+)
 
 message(STATUS "Using METARTC_LIB_DIR=${METARTC_LIB_DIR}")
