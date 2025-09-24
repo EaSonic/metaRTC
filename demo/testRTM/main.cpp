@@ -5,6 +5,7 @@
 #include <string>
 #include <yangrtc/YangWhip.h>
 #include <yangrtc/YangPeerConnection.h>
+#include <yangrtc/YangPeerInfo.h>
 #include <yangutil/sys/YangLog.h>
 #include <yangutil/sys/YangTime.h>
 #include <yangutil/yangavinfo.h>
@@ -31,22 +32,35 @@ int main(int argc,char* argv[]){
     std::string vfile=outdir+"/video.h264"; std::string afile=outdir+"/audio.opus"; std::string flvfile=outdir+"/out.flv";
     g_videoAnnexB=fopen(vfile.c_str(),"wb"); g_audioRaw=fopen(afile.c_str(),"wb"); if(g_writeFlv){ g_flv.open(flvfile, true, false);} 
     YangPeerConnection pc; memset(&pc,0,sizeof(pc));
-    YangContext yctx; yctx.init(); // initializes avinfo etc.
-    yctx.avinfo.sys.mediaServer=Yang_Server_Whip_Whep;
-    pc.peer.peerInfo.rtc.rtcLocalPort=yctx.avinfo.rtc.rtcLocalPort++;
-    pc.peer.peerInfo.direction=YangRecvonly; pc.peer.peerInfo.uid=1; pc.peer.peerInfo.familyType=Yang_IpFamilyType_IPV4;
-    pc.peer.peerCallback.recvCallback.context=NULL; pc.peer.peerCallback.recvCallback.receiveAudio=receiveAudio; pc.peer.peerCallback.recvCallback.receiveVideo=receiveVideo; pc.peer.peerCallback.recvCallback.receiveMsg=receiveMsg;
-    yctx.sendRtcMessage.context=NULL; yctx.sendRtcMessage.sendRtcMessage=sendRtcMessage;
-    memcpy(&pc.peer.peerCallback.rtcCallback,&yctx.rtcCallback,sizeof(YangRtcCallback));
-    yang_create_peerConnection(&pc);
-    pc.addAudioTrack(&pc.peer,(YangAudioCodec)yctx.avinfo.audio.audioDecoderType);
-    pc.addVideoTrack(&pc.peer,Yang_VED_H264);
-    pc.addTransceiver(&pc.peer,YangMediaAudio,YangRecvonly);
-    pc.addTransceiver(&pc.peer,YangMediaVideo,YangRecvonly);
-    // enable RTP dump via internal rtc context (first video track)
-    if(pc.peer.peerCallback.rtcCallback.sendRequest){ /* placeholder to avoid unused warning */ }
-    // direct enable: locate underlying rtc context if exposed (not available here) so rely on global flag already added elsewhere if any.
-    if(yang_whip_connectWhipWhepServer(&pc.peer,(char*)url.c_str(),1)!=Yang_Ok){ fprintf(stderr,"Connect failed\n"); }
+        // Minimal C-style initialization
+        YangAVInfo avinfo; memset(&avinfo,0,sizeof(avinfo)); yang_init_avinfo(&avinfo);
+        avinfo.sys.mediaServer=Yang_Server_Whip_Whep;
+        // init peer info from avinfo
+        yang_init_peerInfo(&pc.peer.peerInfo);
+        pc.peer.peerInfo.direction=YangRecvonly;
+        pc.peer.peerInfo.uid=1;
+        pc.peer.peerInfo.familyType=Yang_IpFamilyType_IPV4;
+        pc.peer.peerInfo.rtc.rtcLocalPort=avinfo.rtc.rtcLocalPort++;
+        // callbacks
+        pc.peer.peerCallback.recvCallback.context=NULL;
+        pc.peer.peerCallback.recvCallback.receiveAudio=receiveAudio;
+        pc.peer.peerCallback.recvCallback.receiveVideo=receiveVideo;
+        pc.peer.peerCallback.recvCallback.receiveMsg=receiveMsg;
+        pc.peer.peerCallback.rtcCallback.context=NULL;
+        pc.peer.peerCallback.rtcCallback.setMediaConfig=NULL;
+        pc.peer.peerCallback.rtcCallback.sendRequest=NULL;
+        // sendRtcMessage not used
+        yang_create_peerConnection(&pc);
+        pc.addAudioTrack(&pc.peer,(YangAudioCodec)avinfo.audio.audioDecoderType);
+        pc.addVideoTrack(&pc.peer,Yang_VED_H264);
+        pc.addTransceiver(&pc.peer,YangMediaAudio,YangRecvonly);
+        pc.addTransceiver(&pc.peer,YangMediaVideo,YangRecvonly);
+        // enable internal rtp dump flag if symbol available via peer.conn->context
+        if(pc.peer.conn){
+            // best-effort: struct layout may expose context pointer
+            // (left empty intentionally if not accessible)
+        }
+        if(yang_whip_connectWhipWhepServer(&pc.peer,(char*)url.c_str(),1)!=Yang_Ok){ fprintf(stderr,"Connect failed\n"); }
     printf("Receiving... press Ctrl+C to stop. Files in %s\n", outdir.c_str());
     while(1){ yang_usleep(1000*100); }
     return 0;
