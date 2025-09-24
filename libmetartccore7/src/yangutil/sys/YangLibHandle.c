@@ -66,24 +66,71 @@ void* yang_libhandle_loadObject(void* pcontext,const char *sofile)
 	char file_path_getcwd[LENTH];
 	yang_memset(file1, 0, LENTH+50);
 	yang_memset(file_path_getcwd, 0, LENTH);
-    if(yang_getLibpath(file_path_getcwd)!=Yang_Ok){
-		yang_error( "Failed loading shared obj %s: %s,getcwd error!", sofile, yang_libhandle_dlerror());
-		return NULL;
-	}
 
 #if Yang_OS_WIN
+	if(yang_getLibpath(file_path_getcwd)!=Yang_Ok){
+		yang_error( "Failed loading shared obj %s: getcwd error!", sofile);
+		return NULL;
+	}
 	yang_sprintf(file1, "%s/%s.dll", file_path_getcwd, sofile);
 	context->handle =  LoadLibraryA(file1);
+	if (context->handle == 0) {
+		yang_error( "Failed loading shared obj %s: %s", sofile, yang_libhandle_dlerror());
+	}
+	return (context->handle);
 #else
-    yang_sprintf(file1, "%s/%s.so", file_path_getcwd, sofile);
-    context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+	const char* env_dir = getenv("YANG_LIBDIR");
+	const char* brew_dir = "/opt/homebrew/lib";
+	const char* local_dir = "/usr/local/opt/ffmpeg/lib";
+
+#if Yang_OS_APPLE
+	const char* exts[] = { ".dylib", ".so" };
+#else
+	const char* exts[] = { ".so" };
 #endif
 
-    if (context->handle == 0) {
+	// 1) Try by name with extensions (uses system search paths/rpath)
+	for(size_t i=0;i<sizeof(exts)/sizeof(exts[0]);++i){
+		yang_snprintf(file1, sizeof(file1), "%s%s", sofile, exts[i]);
+		context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+		if(context->handle) return context->handle;
+	}
 
-    	yang_error( "Failed loading shared obj %s: %s", sofile, yang_libhandle_dlerror());
-    }
-    return (context->handle);
+	// 2) YANG_LIBDIR env override
+	if(env_dir && env_dir[0]){
+		for(size_t i=0;i<sizeof(exts)/sizeof(exts[0]);++i){
+			yang_snprintf(file1, sizeof(file1), "%s/%s%s", env_dir, sofile, exts[i]);
+			context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+			if(context->handle) return context->handle;
+		}
+	}
+
+	// 3) Common Homebrew locations on macOS
+#if Yang_OS_APPLE
+	for(size_t i=0;i<sizeof(exts)/sizeof(exts[0]);++i){
+		yang_snprintf(file1, sizeof(file1), "%s/%s%s", brew_dir, sofile, exts[i]);
+		context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+		if(context->handle) return context->handle;
+	}
+	for(size_t i=0;i<sizeof(exts)/sizeof(exts[0]);++i){
+		yang_snprintf(file1, sizeof(file1), "%s/%s%s", local_dir, sofile, exts[i]);
+		context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+		if(context->handle) return context->handle;
+	}
+#endif
+
+	// 4) Fallback to historical <cwd>/lib path
+	if(yang_getLibpath(file_path_getcwd)==Yang_Ok){
+		for(size_t i=0;i<sizeof(exts)/sizeof(exts[0]);++i){
+			yang_snprintf(file1, sizeof(file1), "%s/%s%s", file_path_getcwd, sofile, exts[i]);
+			context->handle = dlopen(file1, RTLD_NOW|RTLD_LOCAL);
+			if(context->handle) return context->handle;
+		}
+	}
+
+	yang_error( "Failed loading shared obj %s: %s", sofile, yang_libhandle_dlerror());
+	return NULL;
+#endif
 }
 
 

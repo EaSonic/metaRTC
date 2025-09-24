@@ -18,8 +18,10 @@ int32_t yang_send_rtcppacket(YangRtcContext *context, char *data, int32_t nb) {
 	int32_t nn_encrypt = nb;
 
 #if Yang_Enable_Dtls
-	if ((err = yang_enc_rtcp(&context->srtp, data, &nn_encrypt)) != Yang_Ok) {
-		return yang_error_wrap(err, "srtp protect");
+	if (!context->disableSrtp) {
+		if ((err = yang_enc_rtcp(&context->srtp, data, &nn_encrypt)) != Yang_Ok) {
+			return yang_error_wrap(err, "srtp protect");
+		}
 	}
 #endif
 
@@ -219,9 +221,11 @@ int32_t yang_check_send_nacks(YangRtcContext *context, YangRtpRecvNack *nack,
 	nb_protected_buf = yang_buffer_pos(&stream);
 
 #if Yang_Enable_Dtls
-	if((err=yang_enc_rtcp(&context->srtp, stream.data, &nb_protected_buf))!=Yang_Ok){
-		yang_rtcpNack_clear(nack->rtcp.nack);
-		return yang_error_wrap(err, "check send nacks");
+	if(!context->disableSrtp){
+		if((err=yang_enc_rtcp(&context->srtp, stream.data, &nb_protected_buf))!=Yang_Ok){
+			yang_rtcpNack_clear(nack->rtcp.nack);
+			return yang_error_wrap(err, "check send nacks");
+		}
 	}
 #endif
 

@@ -19,11 +19,18 @@ typedef struct {
 	char stream[Yang_StreamName_Lenght];
 }YangUrlData;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 //webrtc://host[:port]/app/stream
 int32_t yang_url_parse(YangIpFamilyType familyType,char* purl, YangUrlData* data);
 //http://host:port/path ws://host:port/path wss://host:port/path
 int32_t yang_ws_url_parse(YangIpFamilyType familyType,char* purl, YangUrlData* data);
 
 int32_t yang_http_url_parse(YangIpFamilyType familyType,char* purl, YangUrlData* data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INCLUDE_YANGUTIL_SYS_YANGCURL_H_ */

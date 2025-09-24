@@ -67,6 +67,10 @@ typedef struct{
 	YangRtcTwcc twcc;
 #endif
 
+	// If true, remote signaled plaintext RTP (e.g., RTP/AVPF). Skip DTLS-SRTP.
+	yangbool disableSrtp;
+	yangbool enableRtpDump; // new: dump incoming RTP headers
+
 
 } YangRtcContext;
 

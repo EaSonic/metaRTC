@@ -20,6 +20,7 @@
 #include <yangutil/sys/YangSRtp.h>
 
 #include <yangsdp/YangSdp.h>
+#include <yangsdp/YangRtcSdp.h>
 
 
 
@@ -315,9 +316,11 @@ static int32_t yang_rtcconn_on_rtcp(YangRtcSession *session, char *data,int32_t 
 	YangBuffer buffer;
 
 #if Yang_Enable_Dtls
-	if ((err = yang_dec_rtcp(&session->context.srtp, data, &nb_unprotected_buf))!= Yang_Ok) {
-		if (err == srtp_err_status_replay_fail)	return Yang_Ok;
-		return yang_error_wrap(err, "rtcp unprotect");
+	if (!session->context.disableSrtp) {
+		if ((err = yang_dec_rtcp(&session->context.srtp, data, &nb_unprotected_buf))!= Yang_Ok) {
+			if (err == srtp_err_status_replay_fail)	return Yang_Ok;
+			return yang_error_wrap(err, "rtcp unprotect");
+		}
 	}
 #endif
 
@@ -375,10 +378,11 @@ static int32_t yang_rtcconn_send_video_meta(YangRtcSession *session, YangFrame *
 static int32_t yang_rtcconn_onVideo(YangRtcSession *session, YangFrame *p) {
 #if Yang_Enable_RTC_Video
 	#if Yang_Enable_Dtls
-
-	if (session==NULL || p==NULL || session->context.state!=Yang_Conn_State_Connected||session->context.dtls->session.state!=YangDtlsStateClientDone)
+	if (session==NULL || p==NULL || session->context.state!=Yang_Conn_State_Connected)
 		return Yang_Ok;
-
+	// When SRTP is enabled, ensure DTLS handshake is done before sending media.
+	if (!session->context.disableSrtp && session->context.dtls->session.state!=YangDtlsStateClientDone)
+		return Yang_Ok;
 	#else
 	if (session==NULL|| p==NULL || session->context.state!=Yang_Conn_State_Connected)	return Yang_Ok;
 	#endif
@@ -401,9 +405,10 @@ static int32_t yang_rtcconn_onVideo(YangRtcSession *session, YangFrame *p) {
 static int32_t yang_rtcconn_onAudio(YangRtcSession *session, YangFrame *p) {
 
 #if Yang_Enable_Dtls
-	if (session==NULL||p==NULL||session->context.state!=Yang_Conn_State_Connected||session->context.dtls->session.state!=YangDtlsStateClientDone)
+	if (session==NULL||p==NULL||session->context.state!=Yang_Conn_State_Connected)
 		return Yang_Ok;
-
+	if (!session->context.disableSrtp && session->context.dtls->session.state!=YangDtlsStateClientDone)
+		return Yang_Ok;
 #else
 	if (session==NULL||p==NULL||session->context.state!=Yang_Conn_State_Connected)	return Yang_Ok;
 #endif
@@ -420,7 +425,10 @@ static int32_t yang_rtcconn_onMessage(YangRtcSession *session, YangFrame *p) {
 #if Yang_Enable_Dtls
 #if Yang_Enable_Datachannel
 	if(session==NULL || p==NULL ||session->context.state!=Yang_Conn_State_Connected||
-			session->context.dtls->session.isRecvAlert||session->context.dtls->session.state!=YangDtlsStateClientDone)
+			session->context.dtls->session.isRecvAlert)
+		return Yang_Ok;
+	// For datachannel, still require DTLS handshake since it runs over DTLS.
+	if (session->context.dtls->session.state!=YangDtlsStateClientDone)
 		return Yang_Ok;
 
 	if(session->datachannel&&session->datachannel->send_message) session->datachannel->send_message(session->datachannel->context,p);
@@ -526,10 +534,16 @@ static void yang_rtcconn_receive(YangRtcSession *session, char *data, int32_t si
 			}
 
 #if Yang_Enable_Dtls
-			if (!session->isSendDtls) {
-				if (session->context.dtls->startHandShake(&session->context.dtls->session))
-					yang_error("dtls start handshake failed!");
-				session->isSendDtls = yangtrue;
+			// If SRTP is disabled (plaintext RTP), don't start DTLS; ICE success is enough.
+			if (!session->context.disableSrtp) {
+				if (!session->isSendDtls) {
+					if (session->context.dtls->startHandShake(&session->context.dtls->session))
+						yang_error("dtls start handshake failed!");
+					session->isSendDtls = yangtrue;
+				}
+			} else {
+				// Transition to connected once ICE succeeds, without DTLS.
+				if(session->context.state==Yang_Conn_State_Connecting) goto client_sucess;
 			}
 #else
 			if(session->context.state==Yang_Conn_State_Connecting)	goto client_sucess;
@@ -545,20 +559,17 @@ static void yang_rtcconn_receive(YangRtcSession *session, char *data, int32_t si
 #if Yang_Enable_Dtls
 			if(session->context.dtls==NULL)
 				return;
+			// If SRTP is disabled (plaintext RTP), ignore DTLS packets entirely.
+			if (session->context.disableSrtp) {
+				return;
+			}
 #if Yang_Enable_Datachannel
 			if (session->context.dtls->processData(session->datachannel,&session->context.dtls->session, data,size) == Yang_Ok && session->context.state == Yang_Conn_State_Connecting) {
 #else
 			if (session->context.dtls->processData(NULL,&session->context.dtls->session, data,size) == Yang_Ok && session->context.state == Yang_Conn_State_Connecting) {
 #endif
-
-				if(session->isControlled){
-					if( session->context.dtls->session.handshake_done ) {
-										session->context.state = Yang_Conn_State_Connected;
-										yang_onConnectionStateChange(session,Yang_Conn_State_Connected);
-										yang_rtcconn_startTimers(session);
-					}
-					return;
-				}else if (session->context.dtls->session.state == YangDtlsStateClientDone) {
+				// When DTLS handshake completes, transition to Connected regardless of ICE controlled flag.
+				if (session->context.dtls->session.handshake_done) {
 					goto client_sucess;
 				}
 			}
@@ -792,6 +803,54 @@ static int32_t yang_rtcconn_setRemoteDescription(YangRtcSession* session,char* s
 	}
 	if(err==Yang_Ok&&(err=yang_sdp_parseRemoteSdp(session,&sdp))!=Yang_Ok){
 		yang_error("parseRemoteSdp error!");
+	}
+
+	// Detect plaintext RTP from SDP proto (RTP/AVPF) to disable SRTP.
+	if (err == Yang_Ok) {
+		yangbool sawAv = yangfalse; yangbool anyPlain = yangfalse;
+		for (int i = 0; i < sdp.media_descs.vsize; i++) {
+			YangMediaDesc* d = &sdp.media_descs.payload[i];
+			if (yang_strcmp(d->type, "audio")==0 || yang_strcmp(d->type, "video")==0) {
+				sawAv = yangtrue;
+				if (yang_strstr(d->protos, "RTP/AVPF")) {
+					anyPlain = yangtrue;
+				}
+			}
+		}
+		session->context.disableSrtp = (sawAv && anyPlain) ? yangtrue : yangfalse;
+		yang_trace("Remote SDP protos: sawAV=%d anyPlain=%d -> disableSrtp=%d", (int)sawAv, (int)anyPlain, (int)session->context.disableSrtp);
+	}
+
+	// Derive DTLS role from remote a=setup ONLY for DTLS; do not change ICE role (session->isControlled).
+	if(err==Yang_Ok){
+		char* remote_setup = yang_rtcsdp_get_dtls_role(&sdp);
+		yangbool dtlsServer = session->context.dtls->session.isControled; // default
+		if(remote_setup && yang_strlen(remote_setup)>0){
+			if(yang_strcmp(remote_setup, "active")==0){
+				dtlsServer = yangtrue;   // remote client(active) -> we are server(passive)
+			}else if(yang_strcmp(remote_setup, "passive")==0){
+				dtlsServer = yangfalse;  // remote server(passive) -> we are client(active)
+			}else{
+				dtlsServer = yangfalse;  // actpass/unknown -> default to client(active)
+			}
+		}
+#if Yang_Enable_Dtls
+		if(session->context.dtls && !session->context.disableSrtp){
+			YangDtlsSession* d = &session->context.dtls->session;
+			d->isControled = dtlsServer;
+#if Yang_Enable_Openssl
+			if(d->ssl){
+				if(dtlsServer){
+					SSL_set_accept_state(d->ssl);
+				}else{
+					SSL_set_connect_state(d->ssl);
+					SSL_set_max_send_fragment(d->ssl, kRtpPacketSize);
+				}
+			}
+#endif
+			yang_trace("DTLS role adjusted by remote setup: remote=%s, local=%s", remote_setup?remote_setup:"(nil)", dtlsServer?"passive(server)":"active(client)");
+		}
+#endif
 	}
 	yang_destroy_rtcsdp(&sdp);
 

@@ -1,7 +1,17 @@
+QMAKE_DEBUG_POSTFIX =        # disable Qt _debug suffix globally
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
+# greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4) {
+  QT += widgets
+  qtHaveModule(openglwidgets) {
+    QT += openglwidgets     # Qt6: 提供 QOpenGLWidget
+  } else {
+    QT += opengl            # Qt5: QOpenGLWidget 隶属 widgets+opengl
+  }
+} else {
+  QT += widgets opengl      # Qt4（几乎用不到）
+}
 
 CONFIG += c++11
 
@@ -16,7 +26,21 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_WIN_MSC
 HOME_BASE=../../
 INCLUDEPATH += $$HOME_BASE/libmetartc7/src
-macx{
+macx {
+    # override rpath to avoid linking anaconda libraries
+    QMAKE_RPATHDIR = @executable_path/Frameworks
+    
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 15.0
+
+    # Force qmake to use modern OpenGL without deprecated AGL on macOS.
+    # Some mac mkspecs still set QMAKE_LIBS_OPENGL = "-framework OpenGL -framework AGL".
+    # Overriding here ensures the generated Makefile won't include AGL.
+    QMAKE_LIBS_OPENGL = -framework OpenGL
+    QMAKE_LIBS_OPENGL_QT = -framework OpenGL
+    QMAKE_LIBS_OPENGL_SHLIB = -framework OpenGL
+    QMAKE_LIBS_OPENGL_ES2 = -framework OpenGLES
+    # Safety: if anything injected AGL into LIBS earlier, remove it.
+    LIBS -= -framework AGL
 
     INCLUDEPATH += $$HOME_BASE/include
     CONFIG(debug, debug|release) {
@@ -28,12 +52,14 @@ macx{
     }
  LIBS +=  -L$$HOME_BASE/thirdparty/lib
 
- LIBS += -lmetartc7 -lyangwhip7 -lmetartccore7 -lyuv -lspeexdsp -lopus -lyangh264decoder -lusrsctp -lpthread  -ldl
+ LIBS += -lmetartc7 -lyangwhip7 -lmetartccore7 -lyuv -lspeexdsp -lopus -lusrsctp -lpthread  -ldl
 
  LIBS += -framework CoreAudio
+ LIBS += -framework CoreFoundation
 
     #openssl
- LIBS += -lssl2 -lcrypto2 -lsrtp2
+ LIBS += -lssl -lcrypto -lsrtp2
+    # Avoid manual -lc++; clang++ links libc++ by default. Remove to prevent duplicates.
 }
 unix:!macx{
 
@@ -47,12 +73,12 @@ unix:!macx{
     }
  LIBS +=  -L$$HOME_BASE/thirdparty/lib
 
- LIBS += -lmetartc7 -lyangwhip7 -lmetartccore7 -lyuv -lspeexdsp -lopus -lyangh264decoder -lusrsctp -lpthread  -ldl
+ LIBS += -lmetartc7 -lyangwhip7 -lmetartccore7 -lyuv -lspeexdsp -lopus -lusrsctp -lpthread  -ldl
 
 #linux
 LIBS += -lasound
     #openssl
- LIBS += -lssl2 -lcrypto2 -lsrtp2
+ LIBS += -lssl -lcrypto -lsrtp2
 
 #mbtls
  #LIBS += -lmbedtls -lmbedx509 -lmbedcrypto -lsrtp2_mbed

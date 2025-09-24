@@ -164,8 +164,8 @@ void YangRtcReceive::startLoop() {
 	yang_reindex(m_out_videoBuffer);
 	m_loops = 1;
 	m_isReceived = 1;
-    if(m_context->avinfo.sys.mediaServer==Yang_Server_Whip_Whep)
-        err=yang_whip_connectWhipWhepServer(&m_recv->peer,m_url);
+	if(m_context->avinfo.sys.mediaServer==Yang_Server_Whip_Whep)
+		err=yang_whip_connectWhipWhepServer(&m_recv->peer,m_url,1);
     else
         err=yang_whip_connectSfuServer(&m_recv->peer,m_url,m_context->avinfo.sys.mediaServer);
 

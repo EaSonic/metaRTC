@@ -107,7 +107,7 @@ int32_t yang_sdp_genLocalSdp2(YangRtcSession *session, int32_t localport,char *d
 
 	yang_strcpy(audio_media_desc->type, "audio");
 	audio_media_desc->port = 9;
-	yang_strcpy(audio_media_desc->protos, "UDP/TLS/RTP/SAVPF");
+	yang_strcpy(audio_media_desc->protos, session->context.disableSrtp?"RTP/AVPF":"UDP/TLS/RTP/SAVPF");
 	audio_media_desc->rtcp_mux = yangtrue;
 	audio_media_desc->rtcp_rsize = yangtrue;
 	yang_sprintf(audio_media_desc->mid,"%d",midNum++);
@@ -118,7 +118,7 @@ int32_t yang_sdp_genLocalSdp2(YangRtcSession *session, int32_t localport,char *d
 	video_media_desc = &local_sdp->media_descs.payload[local_sdp->media_descs.vsize-1];
 	yang_strcpy(video_media_desc->type, "video");
 	video_media_desc->port = 9;
-	yang_strcpy(video_media_desc->protos, "UDP/TLS/RTP/SAVPF");
+	yang_strcpy(video_media_desc->protos, session->context.disableSrtp?"RTP/AVPF":"UDP/TLS/RTP/SAVPF");
 	video_media_desc->rtcp_mux = yangtrue;
 	video_media_desc->rtcp_rsize = yangtrue;
 	yang_sprintf(video_media_desc->mid,"%d",midNum++);
@@ -126,7 +126,7 @@ int32_t yang_sdp_genLocalSdp2(YangRtcSession *session, int32_t localport,char *d
 #endif
 #if Yang_Enable_Datachannel
 	data_media_desc = NULL;
-	if(session->enableDatachannel){
+	if(session->enableDatachannel && !session->context.disableSrtp){
 		yang_insert_YangMediaDescVector(&local_sdp->media_descs, NULL);
 		data_media_desc=&local_sdp->media_descs.payload[local_sdp->media_descs.vsize-1];
 		yang_strcpy(data_media_desc->type, "application");
@@ -186,24 +186,29 @@ int32_t yang_sdp_genLocalSdp2(YangRtcSession *session, int32_t localport,char *d
 	yang_memset(session->localIcePwd,0,sizeof(session->localIcePwd));
 	yang_strcpy(session->localIcePwd,randstr);
 #if Yang_Enable_RTC_Audio
-	yang_strcpy(audio_media_desc->session_info.fingerprint_algo, "sha-256");
+	if(!session->context.disableSrtp)
+		yang_strcpy(audio_media_desc->session_info.fingerprint_algo, "sha-256");
 #endif
 #if Yang_Enable_RTC_Video
-	yang_strcpy(video_media_desc->session_info.fingerprint_algo, "sha-256");
+	if(!session->context.disableSrtp)
+		yang_strcpy(video_media_desc->session_info.fingerprint_algo, "sha-256");
 #endif
 #if Yang_Enable_Datachannel
-	if(data_media_desc) yang_strcpy(data_media_desc->session_info.fingerprint_algo, "sha-256");
+	if(data_media_desc && !session->context.disableSrtp) yang_strcpy(data_media_desc->session_info.fingerprint_algo, "sha-256");
 	if(data_media_desc) yang_strcpy(data_media_desc->session_info.ice_options, "trickle");
 #endif
 #if Yang_Enable_Dtls
 	#if Yang_Enable_RTC_Audio
-	yang_strcpy(audio_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
+	if(!session->context.disableSrtp)
+		yang_strcpy(audio_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
 	#endif
 	#if Yang_Enable_RTC_Video
-	yang_strcpy(video_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
+	if(!session->context.disableSrtp)
+		yang_strcpy(video_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
 	#endif
 	#if Yang_Enable_Datachannel
-	if(data_media_desc) yang_strcpy(data_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
+	if(data_media_desc && !session->context.disableSrtp)
+		yang_strcpy(data_media_desc->session_info.fingerprint,session->context.cer->fingerprint);
 	#endif
 #else
 	#if Yang_Enable_RTC_Audio
@@ -215,14 +220,18 @@ int32_t yang_sdp_genLocalSdp2(YangRtcSession *session, int32_t localport,char *d
 	if(data_media_desc) yang_strcpy(data_media_desc->session_info.fingerprint,"EF:7A:50:9C:05:8C:EF:84:4D:72:B2:74:30:BA:FD:82:76:D1:C3:FE:0C:A0:10:43:B8:6C:B2:ED:B3:F7:77:8B");
 #endif
 	#if Yang_Enable_RTC_Audio
-	yang_strcpy(audio_media_desc->session_info.setup, session->isControlled?"passive":"active");
+		// Use actpass for offers (not controlled), passive for answers (controlled)
+		if(!session->context.disableSrtp)
+			yang_strcpy(audio_media_desc->session_info.setup, session->isControlled?"passive":"actpass");
+		#endif
+		#if Yang_Enable_RTC_Video
+		if(!session->context.disableSrtp)
+			yang_strcpy(video_media_desc->session_info.setup, session->isControlled?"passive":"actpass");
+		#endif
+	#if Yang_Enable_Datachannel
+		if(data_media_desc && !session->context.disableSrtp)
+			yang_strcpy(data_media_desc->session_info.setup, session->isControlled?"passive":"actpass");
 	#endif
-	#if Yang_Enable_RTC_Video
-	yang_strcpy(video_media_desc->session_info.setup, session->isControlled?"passive":"active");
-	#endif
-#if Yang_Enable_Datachannel
-	if(data_media_desc) yang_strcpy(data_media_desc->session_info.setup, session->isControlled?"passive":"active");
-#endif
 	//extmaps twcc
 
 #if Yang_Enable_RTC_Audio

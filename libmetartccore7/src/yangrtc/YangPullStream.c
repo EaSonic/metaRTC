@@ -197,20 +197,22 @@ static int32_t yang_on_rtp(YangRtcContext *context, YangRtcPullStream *play,
 
 
 #if Yang_Enable_Dtls
-	if ((err = yang_dec_rtp(&context->srtp, plaintext, &nb_plaintext))!= Yang_Ok) {
-		if (err == srtp_err_status_replay_fail)
-			return Yang_Ok;
-		YangBuffer b;
-		yang_init_buffer(&b, data, nb_data);
-		YangRtpHeader h;
-		yang_memset(&h, 0, sizeof(YangRtpHeader));
-		h.ignore_padding = yangtrue;
+	if (!context->disableSrtp) {
+		if ((err = yang_dec_rtp(&context->srtp, plaintext, &nb_plaintext))!= Yang_Ok) {
+			if (err == srtp_err_status_replay_fail)
+				return Yang_Ok;
+			YangBuffer b;
+			yang_init_buffer(&b, data, nb_data);
+			YangRtpHeader h;
+			yang_memset(&h, 0, sizeof(YangRtpHeader));
+			h.ignore_padding = yangtrue;
 
-		yang_decode_rtpHeader(&b, &h);
-		return yang_error_wrap(err,
-				"marker=%u, pt=%u, seq=%u, ts=%u, ssrc=%u, pad=%u, payload=%uB",
-				h.marker, h.payload_type, h.sequence, h.timestamp, h.ssrc,
-				h.padding_length, nb_data - yang_buffer_pos(&b));
+			yang_decode_rtpHeader(&b, &h);
+			return yang_error_wrap(err,
+					"marker=%u, pt=%u, seq=%u, ts=%u, ssrc=%u, pad=%u, payload=%uB",
+					h.marker, h.payload_type, h.sequence, h.timestamp, h.ssrc,
+					h.padding_length, nb_data - yang_buffer_pos(&b));
+		}
 	}
 #endif
 
@@ -221,6 +223,19 @@ static int32_t yang_on_rtp(YangRtcContext *context, YangRtcPullStream *play,
 
 	if ((err = yang_decode_rtpPacket(&play->rtp, &play->buf)) != Yang_Ok) {
 		return yang_error_wrap(err, "decode rtp packet");
+	}
+
+	if(context->enableRtpDump){
+		YangRtpHeader *h=&play->rtp.header;
+		int preview = play->rtp.nb; if(preview>32) preview=32;
+		char hex[32*3+4]; int hi=0; for(int i=0;i<preview;i++){ hi+=snprintf(hex+hi,sizeof(hex)-hi,"%02X ",(uint8_t)play->rtp.payload[i]); if(hi>=(int)sizeof(hex)-4) break; }
+		if(preview<play->rtp.nb) snprintf(hex+hi,sizeof(hex)-hi,"...");
+		if(h->extensions&&h->extensions->extmap_size>0){
+			yang_trace("[RTP] ssrc=%u seq=%u ts=%u pt=%u m=%d ext=%d size=%d payload=%s",h->ssrc,h->sequence,h->timestamp,h->payload_type,h->marker,h->extensions->extmap_size,play->rtp.nb,hex);
+			for(int ei=0;ei<h->extensions->extmap_size;ei++){ YangRtpExt* e=&h->extensions->extmaps[ei]; int plen=e->len; if(plen>0){ int pprev=plen; if(pprev>32) pprev=32; char ehex[32*3+4]; int hj=0; for(int j=0;j<pprev;j++){ hj+=snprintf(ehex+hj,sizeof(ehex)-hj,"%02X ",(uint8_t)e->data[j]); if(hj>=(int)sizeof(ehex)-4) break;} if(pprev<plen) snprintf(ehex+hj,sizeof(ehex)-hj,"..."); yang_trace("[RTP][ext] id=%d len=%d %s",e->id,plen,ehex);} else { yang_trace("[RTP][ext] id=%d len=0",e->id);} }
+		}else{
+			yang_trace("[RTP] ssrc=%u seq=%u ts=%u pt=%u m=%d size=%d payload=%s",h->ssrc,h->sequence,h->timestamp,h->payload_type,h->marker,play->rtp.nb,hex);
+		}
 	}
 
 	ssrc = play->rtp.header.ssrc;

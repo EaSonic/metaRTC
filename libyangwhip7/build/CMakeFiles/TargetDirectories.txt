@@ -1,0 +1,3 @@
+/Users/zys/Documents/_ChinaTeleCom/Work/RTM/metaRTC/libyangwhip7/build/CMakeFiles/rebuild_cache.dir
+/Users/zys/Documents/_ChinaTeleCom/Work/RTM/metaRTC/libyangwhip7/build/CMakeFiles/edit_cache.dir
+/Users/zys/Documents/_ChinaTeleCom/Work/RTM/metaRTC/libyangwhip7/build/CMakeFiles/yangwhip7.dir

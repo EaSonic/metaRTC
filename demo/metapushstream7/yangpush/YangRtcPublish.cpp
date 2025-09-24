@@ -85,8 +85,8 @@ int32_t YangRtcPublish::init(char* url,yangbool isWhip) {
     sh->addTransceiver(YangMediaVideo,peerInfo.direction);
 
     m_pushs.push_back(sh);
-    if(isWhip)
-         ret = yang_whip_connectWhipWhepServer(&sh->m_peer,url);
+	if(isWhip)
+		 ret = yang_whip_connectWhipWhepServer(&sh->m_peer,url,1);
     else
         ret = yang_whip_connectSfuServer(&sh->m_peer,url,m_context->avinfo.sys.mediaServer);
 

@@ -12,11 +12,14 @@ set(HOME_BASE "../")
 # 头文件目录
 include_directories(${HOME_BASE}/include)
 include_directories(./src)
+include_directories(./src/mini_sdp)
+include_directories(./src/mini_sdp/mini_sdp)
 
 # 发现目录下的源文件
 
 
 aux_source_directory(./src/yangwhip DIR_SRCS)
+aux_source_directory(./src/mini_sdp/mini_sdp DIR_MINISDP)
 
 
 
@@ -25,5 +28,5 @@ include(utils.cmake)
 # 排除不参与编译的文件
 
 
-add_library(yangwhip7 ${DIR_SRCS})
+add_library(yangwhip7 ${DIR_SRCS} ${DIR_MINISDP} ./src/yangwhip/YangMiniSdp.cpp)
 

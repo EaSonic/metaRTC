@@ -58,7 +58,12 @@ void YangContext::init(char *filename) {
 #if !(Yang_OS_ANDROID || Yang_OS_IOS)
 	YangIni ini;
 	ini.filename=NULL;
-	yang_create_ini(&ini,filename);
+	// If filename is an absolute POSIX path, use create_ini2 to avoid prefixing CWD
+	if (filename && filename[0] == '/') {
+		yang_create_ini2(&ini, filename);
+	} else {
+		yang_create_ini(&ini,filename);
+	}
 	//ini.init(filename);
 	ini.initAudio(ini.filename,&avinfo.audio);
 	ini.initVideo(ini.filename,&avinfo.video);

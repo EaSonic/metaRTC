@@ -1,0 +1,699 @@
+2025/09/04 03: 12: 03.902 [error
+] 78507#0: *41 , client: 172.24.8.71: 57094, server: 0.0.0.0: 8000 while initializing session. ngx_minisdp_signaling_rtm_handler: 279 ZYS: res_ortc: {
+  "candidate": {
+    "componentId": "1",
+    "connectionAddress": "127.0.0.1",
+    "extension": "",
+    "foundation": "udpcandidate",
+    "port": "9123",
+    "priority": "2103266323",
+    "transport": "udp",
+    "type": "host"
+  },
+  "iceParameters": {
+    "icePwd": "mPHIg0BE7WiSFzPFCVWp6Sv5",
+    "iceUfrag": "15513"
+  },
+  "medias": [
+    {
+      "id": "audio",
+      "kind": "audio",
+      "paused": false,
+      "rtpParameters": {
+        "codecs": [
+          {
+            "clockRate": 48000,
+            "mimeType": "audio/MP4A-LATM",
+            "parameters": {
+              "PS-enabled": "0",
+              "SBR-enabled": "0",
+              "config": "4001d6131056e29d4880",
+              "cpresent": "0",
+              "object": "29",
+              "stereo": "0"
+            },
+            "payloadType": 116,
+            "rtcpFeedback": [
+              {
+                "type": "nack"
+              },
+              {
+                "type": "rrtr"
+              },
+              {
+                "type": "transport-cc"
+              }
+            ]
+          }
+        ],
+        "encodings": [
+          {
+            "ssrc": 1119720804
+          }
+        ],
+        "headerExtensions": [
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 5,
+            "kind": "audio",
+            "preferredId": 4,
+            "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 18,
+            "kind": "audio",
+            "preferredId": 18,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 3,
+            "kind": "video",
+            "preferredId": 2,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 5,
+            "kind": "video",
+            "preferredId": 4,
+            "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 6,
+            "kind": "video",
+            "preferredId": 5,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 18,
+            "kind": "video",
+            "preferredId": 18,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+          }
+        ],
+        "rtcp": {
+          "cname": null,
+          "mux": true,
+          "reducedSize": true
+        }
+      }
+    },
+    {
+      "id": "v_high",
+      "kind": "video",
+      "paused": false,
+      "rtpParameters": {
+        "codecs": [
+          {
+            "clockRate": 90000,
+            "mimeType": "video/H264",
+            "parameters": {
+              "bframe-enabled": "1",
+              "level-asymmetry-allowed": "1",
+              "packetization-mode": "1",
+              "profile-level-id": "42e01f"
+            },
+            "payloadType": 96,
+            "rtcpFeedback": [
+              {
+                "type": "goog-remb"
+              },
+              {
+                "type": "nack"
+              },
+              {
+                "type": "rrtr"
+              },
+              {
+                "type": "transport-cc"
+              }
+            ]
+          },
+          {
+            "clockRate": 90000,
+            "mimeType": "video/rtx",
+            "parameters": {
+              "apt": "96"
+            },
+            "payloadType": 97,
+            "rtcpFeedback": []
+          }
+        ],
+        "encodings": [
+          {
+            "rtx": {
+              "ssrc": 1119721061
+            },
+            "ssrc": 1119721060
+          }
+        ],
+        "headerExtensions": [
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 5,
+            "kind": "audio",
+            "preferredId": 4,
+            "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 18,
+            "kind": "audio",
+            "preferredId": 18,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 3,
+            "kind": "video",
+            "preferredId": 2,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 5,
+            "kind": "video",
+            "preferredId": 4,
+            "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 6,
+            "kind": "video",
+            "preferredId": 5,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+          },
+          {
+            "direction": "recvonly",
+            "encrypt": false,
+            "id": 18,
+            "kind": "video",
+            "preferredId": 18,
+            "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+          }
+        ],
+        "rtcp": {
+          "cname": null,
+          "mux": true,
+          "reducedSize": true
+        }
+      }
+    }
+  ],
+  "reliableSignaling": 1,
+  "rtpCapabilities": {
+    "codecs": [
+      {
+        "channels": 1,
+        "clockRate": 90000,
+        "kind": "video",
+        "mimeType": "video/H264",
+        "parameters": {
+          "bframe-enabled": "1",
+          "level-asymmetry-allowed": "1",
+          "packetization-mode": "1",
+          "profile-level-id": "42e01f"
+        },
+        "payloadType": 96,
+        "rtcpFeedback": [
+          {
+            "type": "goog-remb"
+          },
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4001d6131056e29d4880",
+          "cpresent": "0",
+          "object": "29",
+          "stereo": "0"
+        },
+        "payloadType": 116,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4000242000",
+          "cpresent": "0",
+          "object": "2",
+          "stereo": "0"
+        },
+        "payloadType": 117,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/rtx",
+        "parameters": {
+          "apt": "117"
+        },
+        "payloadType": 105,
+        "rtcpFeedback": []
+      },
+      {
+        "channels": 2,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4000232000",
+          "cpresent": "0",
+          "object": "2",
+          "stereo": "0"
+        },
+        "payloadType": 118,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/rtx",
+        "parameters": {
+          "apt": "118"
+        },
+        "payloadType": 108,
+        "rtcpFeedback": []
+      },
+      {
+        "channels": 1,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4000241000",
+          "cpresent": "0",
+          "object": "2",
+          "stereo": "0"
+        },
+        "payloadType": 119,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4000231000",
+          "cpresent": "0",
+          "object": "2",
+          "stereo": "0"
+        },
+        "payloadType": 120,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4001d7141056e2a54880",
+          "cpresent": "0",
+          "object": "29",
+          "stereo": "0"
+        },
+        "payloadType": 121,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "400056131056e29800",
+          "cpresent": "0",
+          "object": "5",
+          "stereo": "0"
+        },
+        "payloadType": 122,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "400057141056e2a000",
+          "cpresent": "0",
+          "object": "5",
+          "stereo": "0"
+        },
+        "payloadType": 123,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4001d6131056e29d4880",
+          "cpresent": "0",
+          "object": "29",
+          "stereo": "0"
+        },
+        "payloadType": 124,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "4001d7141056e2a54880",
+          "cpresent": "0",
+          "object": "29",
+          "stereo": "0"
+        },
+        "payloadType": 125,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "400056231056e29800",
+          "cpresent": "0",
+          "object": "5",
+          "stereo": "0"
+        },
+        "payloadType": 126,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 48000,
+        "kind": "audio",
+        "mimeType": "audio/rtx",
+        "parameters": {
+          "apt": "126"
+        },
+        "payloadType": 106,
+        "rtcpFeedback": []
+      },
+      {
+        "channels": 2,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/MP4A-LATM",
+        "parameters": {
+          "PS-enabled": "0",
+          "SBR-enabled": "0",
+          "config": "400057241056e2a000",
+          "cpresent": "0",
+          "object": "5",
+          "stereo": "0"
+        },
+        "payloadType": 127,
+        "rtcpFeedback": [
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 2,
+        "clockRate": 44100,
+        "kind": "audio",
+        "mimeType": "audio/rtx",
+        "parameters": {
+          "apt": "127"
+        },
+        "payloadType": 107,
+        "rtcpFeedback": []
+      },
+      {
+        "channels": 1,
+        "clockRate": 90000,
+        "kind": "video",
+        "mimeType": "video/rtx",
+        "parameters": {
+          "apt": "96"
+        },
+        "payloadType": 97,
+        "rtcpFeedback": []
+      },
+      {
+        "channels": 1,
+        "clockRate": 90000,
+        "kind": "video",
+        "mimeType": "video/H265",
+        "parameters": {
+          "bframe-enabled": "1",
+          "level-asymmetry-allowed": "1",
+          "packetization-mode": "1",
+          "profile-level-id": "42e01f"
+        },
+        "payloadType": 98,
+        "rtcpFeedback": [
+          {
+            "type": "goog-remb"
+          },
+          {
+            "type": "nack"
+          },
+          {
+            "type": "rrtr"
+          },
+          {
+            "type": "transport-cc"
+          }
+        ]
+      },
+      {
+        "channels": 1,
+        "clockRate": 90000,
+        "kind": "video",
+        "mimeType": "video/rtx",
+        "parameters": {
+          "apt": "98"
+        },
+        "payloadType": 99,
+        "rtcpFeedback": []
+      }
+    ],
+    "headerExtensions": [
+      {
+        "direction": "recvonly",
+        "id": 5,
+        "kind": "audio",
+        "preferredId": 4,
+        "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+      },
+      {
+        "direction": "recvonly",
+        "id": 18,
+        "kind": "audio",
+        "preferredId": 18,
+        "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+      },
+      {
+        "direction": "recvonly",
+        "id": 3,
+        "kind": "video",
+        "preferredId": 2,
+        "uri": "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+      },
+      {
+        "direction": "recvonly",
+        "id": 5,
+        "kind": "video",
+        "preferredId": 4,
+        "uri": "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+      },
+      {
+        "direction": "recvonly",
+        "id": 6,
+        "kind": "video",
+        "preferredId": 5,
+        "uri": "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+      },
+      {
+        "direction": "recvonly",
+        "id": 18,
+        "kind": "video",
+        "preferredId": 18,
+        "uri": "http://www.webrtc.org/experiments/rtp-hdrext/decoding-timestamp"
+      }
+    ]
+  }
+}

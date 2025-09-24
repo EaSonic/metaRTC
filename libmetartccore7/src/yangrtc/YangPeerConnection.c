@@ -27,17 +27,25 @@ static int32_t yang_pc_close(YangPeer* peer){
 	YangRtcConnection *conn;
 
 	if(peer==NULL||peer->conn==NULL)
-		return  ERROR_RTC_PEERCONNECTION;
+		return Yang_Ok; // already closed or not initialized
 
 	conn = (YangRtcConnection*) peer->conn;
-	if(conn->session->context.state==Yang_Conn_State_Disconnected || conn->session->context.state==Yang_Conn_State_Closed)
+	if(conn==NULL) { peer->conn=NULL; return Yang_Ok; }
+	if(conn->session==NULL) { yang_free(peer->conn); peer->conn=NULL; return Yang_Ok; }
+
+	if(conn->session->context.state==Yang_Conn_State_Disconnected || conn->session->context.state==Yang_Conn_State_Closed){
+		yang_free(peer->conn);
+		peer->conn=NULL;
 		return Yang_Ok;
+	}
 	conn->session->context.state = Yang_Conn_State_Disconnected;
 	if(conn->onConnectionStateChange) conn->onConnectionStateChange(conn->session,Yang_Conn_State_Disconnected);
 	yang_trace("\nwebrtc disconnected\n");
 	conn->close(conn->session);
 	yang_destroy_rtcConnection(conn);
+	// Avoid use-after-free on repeated close
 	yang_free(peer->conn);
+	peer->conn=NULL;
 
 	return Yang_Ok;
 }

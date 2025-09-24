@@ -42,7 +42,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_vb->setStretchFactor(m_hb1,1);
     m_vb->setStretchFactor(m_hb2,10);
     m_context=new YangContext();
-    m_context->init();
+    // Load ini from the .app/Contents/MacOS directory, not CWD
+    {
+        QString appDir = QCoreApplication::applicationDirPath();
+        QString iniPath = appDir + "/yang_config.ini";
+        static std::string s_iniPath = iniPath.toUtf8().constData();
+        m_context->init((char*)s_iniPath.c_str());
+    }
 
     m_context->synMgr.session->playBuffer=(YangSynBuffer*)yang_calloc(sizeof(YangSynBuffer),1);//new YangSynBuffer();
     yang_create_synBuffer(m_context->synMgr.session->playBuffer);
@@ -59,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     char s[128]={0};
 
-    sprintf(s,"http://%s:1985/rtc/v1/whip-play/?app=live&stream=livestream",m_localIp);
+    sprintf(s,"http://%s:8000/rtc/v1/whip-play/?app=live&stream=livestream",m_localIp);
     yang_trace("\nurl===%s",s);
     ui->m_url->setText(s);
     m_isStartplay=false;
@@ -145,12 +151,12 @@ void MainWindow::on_m_b_play_clicked()
 
 void MainWindow::on_m_c_whep_clicked()
 {
-    char s[128]={0};
+    char s[256]={0};
 
     if(ui->m_c_whep->checkState()==Qt::CheckState::Checked)
-        sprintf(s,"http://%s:1985/rtc/v1/whip-play/?app=live&stream=livestream",m_localIp);
+        sprintf(s,"http://%s:%d/rtc/v1/whip-play/?app=live&stream=livestream","192.168.2.147",8000);
     else
-        sprintf(s,"webrtc://%s:1985/live/livestream",m_localIp);
+        sprintf(s,"webrtc://%s:%d/live/livestream","192.168.2.147",8000);
 
     ui->m_url->setText(s);
 }

@@ -17,6 +17,7 @@ INCLUDEPATH += $$HOME_BASE/include
 INCLUDEPATH += $$HOME_BASE/thirdparty/include
 INCLUDEPATH += $$HOME_BASE/thirdparty/user_include
 INCLUDEPATH += $$HOME_BASE/libyangwhip7/src
+INCLUDEPATH += $$HOME_BASE/libyangwhip7/src/mini_sdp/mini_sdp
 
 unix{
   CONFIG(debug, debug|release) {
@@ -53,13 +54,28 @@ win32{
 SOURCES += \
     src/yangwhip/YangSrsConnection.c \
     src/yangwhip/YangWhip.c \
-    src/yangwhip/YangZlmConnection.c
+    src/yangwhip/YangZlmConnection.c \
+    src/yangwhip/YangMiniSdp.cpp \
+    src/mini_sdp/mini_sdp/mini_sdp.cc \
+    src/mini_sdp/mini_sdp/mini_sdp_impl.cc \
+    src/mini_sdp/mini_sdp/sdp.cc \
+    src/mini_sdp/mini_sdp/sdp_parser.cc \
+    src/mini_sdp/mini_sdp/udpsig.cc \
+    src/mini_sdp/mini_sdp/util.cc
 
 
 HEADERS += \
     src/yangwhip/YangSrsConnection.h \
     src/yangwhip/YangWhip.h \
-    src/yangwhip/YangZlmConnection.h
+    src/yangwhip/YangZlmConnection.h \
+    src/yangwhip/YangMiniSdp.h \
+    src/mini_sdp/mini_sdp/mini_sdp.h \
+    src/mini_sdp/mini_sdp/sdp.h \
+    src/mini_sdp/mini_sdp/udpsig.h \
+    src/mini_sdp/mini_sdp/util.h \
+    src/mini_sdp/mini_sdp/compat.h \
+    src/mini_sdp/mini_sdp/sdp_parser.h \
+    src/mini_sdp/mini_sdp/mini_sdp_impl.h
 
 
 # Default rules for deployment.

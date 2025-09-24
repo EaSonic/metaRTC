@@ -42,7 +42,7 @@
 #define Yang_Enable_H264Decoder_So 1
 #define Yang_Enable_FfmpegSo 0
 #else
-#define Yang_Enable_H264Decoder 1
+#define Yang_Enable_H264Decoder 0
 #if !Yang_OS_ANDROID
 #define Yang_Enable_H264Decoder_So 0
 #else

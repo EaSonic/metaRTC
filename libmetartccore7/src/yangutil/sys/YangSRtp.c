@@ -3,6 +3,7 @@
 //
 #include <yangutil/sys/YangSRtp.h>
 #include <yangutil/sys/YangLog.h>
+#include <string.h>
 
 
 #if Yang_Enable_Dtls
@@ -69,6 +70,66 @@ int32_t yang_create_srtp(YangSRtp* srtp,char* recv_key,int precvkeylen, char* se
     yang_free(rkey);
     yang_thread_mutex_init(&srtp->rtpLock,NULL);
     yang_thread_mutex_init(&srtp->rtcpLock,NULL);
+    yang_trace("SRTP created: sendCtx=%p recvCtx=%p (policy=aes_cm_128_hmac_sha1_80, inbound=ssrc_any_inbound, outbound=ssrc_any_outbound)",
+               (void*)srtp->sendCtx, (void*)srtp->recvCtx);
+    return err;
+}
+
+int32_t yang_create_srtp_with_profile(YangSRtp* srtp,char* recv_key,int precvkeylen, char* send_key,int psendkeylen, const char* profile_name)
+{
+    int32_t err = Yang_Ok;
+    uint8_t *skey;
+    uint8_t *rkey ;
+    srtp_policy_t policy;
+    srtp_err_status_t r0 = srtp_err_status_ok;
+
+    yang_memset(&policy, 0,sizeof(policy));
+
+    yangbool use_32 = yangfalse;
+    if (profile_name && strstr(profile_name, "_32") != NULL) {
+        use_32 = yangtrue;
+    }
+
+    if (use_32) {
+        // RFC5764 mapping: SRTP_AES128_CM_SHA1_32 => RTP 32-bit auth, SRTCP 80-bit auth
+        srtp_crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtp);
+        srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
+    } else {
+        srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
+        srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
+    }
+
+    policy.ssrc.value = 0;
+    policy.window_size = 8192;
+    policy.allow_repeat_tx = 1;
+    policy.next = NULL;
+
+    // init send context
+    policy.ssrc.type = ssrc_any_outbound;
+    skey = (uint8_t *)yang_calloc(psendkeylen,1);
+    yang_memcpy(skey, send_key, psendkeylen);
+    policy.key = skey;
+    if ((r0 = srtp_create(&srtp->sendCtx, &policy)) != srtp_err_status_ok) {
+        return yang_error_wrap(ERROR_RTC_SRTP_INIT, "srtp create send r0=%u", r0);
+    }
+
+    // init recv context
+    policy.ssrc.type = ssrc_any_inbound;
+    rkey = (uint8_t *)yang_calloc(precvkeylen,1);
+    yang_memcpy(rkey, recv_key, precvkeylen);
+    policy.key = rkey;
+    if ((r0 = srtp_create(&srtp->recvCtx, &policy)) != srtp_err_status_ok) {
+        return yang_error_wrap(ERROR_RTC_SRTP_INIT, "srtp create recv r0=%u", r0);
+    }
+
+    yang_free(skey);
+    yang_free(rkey);
+    yang_thread_mutex_init(&srtp->rtpLock,NULL);
+    yang_thread_mutex_init(&srtp->rtcpLock,NULL);
+    yang_trace("SRTP created: sendCtx=%p recvCtx=%p (profile=%s, rtp_auth=%s)",
+               (void*)srtp->sendCtx, (void*)srtp->recvCtx,
+               profile_name?profile_name:"SRTP_AES128_CM_SHA1_80",
+               use_32?"32":"80");
     return err;
 }
 
@@ -122,6 +183,21 @@ int32_t yang_dec_rtp(YangSRtp* srtp,void* packet, int* nb_plaintext)
 
     if ((r0 = srtp_unprotect(srtp->recvCtx, packet, nb_plaintext)) != srtp_err_status_ok) {
         if(r0==srtp_err_status_replay_fail) return r0;
+        // Dump trailing bytes for diagnostics (auth tag 4 or 10 bytes)
+        int total = *nb_plaintext;
+        uint8_t* p = (uint8_t*)packet;
+        int tail = total >= 16 ? 16 : (total > 0 ? total : 0);
+        if (tail > 0) {
+            char hex[16*3+1];
+            int k;
+            int start = total - tail;
+            for (k=0; k<tail; ++k) {
+                yang_snprintf(hex + k*3, 4, "%02X ", p[start+k]);
+            }
+            yang_trace("SRTP auth fail r0=%u, pkt_len=%d, tail[%d]=%s", r0, total, tail, hex);
+        } else {
+            yang_trace("SRTP auth fail r0=%u, pkt_len=%d (no tail)", r0, total);
+        }
         return yang_error_wrap(ERROR_RTC_SRTP_UNPROTECT, "rtp unprotect r0=%u", r0);
     }
 

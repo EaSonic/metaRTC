@@ -382,12 +382,11 @@ int32_t yang_rtcsdp_encode(YangSdp *sdp, YangBuffer *os) {
 	yang_sprintf(tmp, "v=%s%s"
 			"o=%s %s %s %s %s %s%s"
 			"s=%s%s"
-			"t=%" PRId64" %" PRId64"%s"
-			"a=ice-lite%s", sdp->version, kCRLF, sdp->username, sdp->session_id,
+			"t=%" PRId64" %" PRId64"%s",
+			sdp->version, kCRLF, sdp->username, sdp->session_id,
 			sdp->session_version, sdp->nettype, sdp->addrtype,
 			sdp->unicast_address, kCRLF, sdp->session_name, kCRLF,
-			sdp->start_time, sdp->end_time, kCRLF,
-			kCRLF);
+			sdp->start_time, sdp->end_time, kCRLF);
 
 
 	if (!sdp->groups.vsize) {

@@ -18,6 +18,19 @@ INCLUDEPATH += $$HOME_BASE/thirdparty/user_include
 INCLUDEPATH += $$HOME_BASE/thirdparty/user_include/ffmpeg
 INCLUDEPATH += $$HOME_BASE/libmetartc7/src
 
+# macOS: use Homebrew FFmpeg headers when available
+macx {
+    isEmpty(FFMPEG_PREFIX) {
+        FFMPEG_PREFIX = /usr/local/opt/ffmpeg
+        exists(/opt/homebrew/opt/ffmpeg/include/libavcodec/avcodec.h) {
+            FFMPEG_PREFIX = /opt/homebrew/opt/ffmpeg
+        }
+    }
+    INCLUDEPATH += $$FFMPEG_PREFIX/include
+    # Common FFmpeg C header macros for C++
+    DEFINES += __STDC_CONSTANT_MACROS __STDC_LIMIT_MACROS
+}
+
 unix{
   CONFIG(debug, debug|release) {
         DESTDIR += $$HOME_BASE/bin/lib_debug

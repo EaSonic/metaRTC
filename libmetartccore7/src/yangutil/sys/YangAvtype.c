@@ -80,11 +80,11 @@ void yang_avinfo_initAudio(YangAudioInfo *audio) {
 void yang_avinfo_initSys(YangSysInfo *sys) {
 	sys->familyType=Yang_IpFamilyType_IPV4;
 
-	sys->enableLogFile = yangfalse;
+	sys->enableLogFile = yangtrue;
 	sys->mediaServer=Yang_Server_Srs;
 	sys->transType = Yang_Webrtc;
 	sys->httpPort=1988;
-	sys->logLevel = 1;
+	sys->logLevel = 5;
 	yang_strcpy(sys->whipUrl, "rtc/v1/whip/?app=%s&stream=%s");
 	yang_strcpy(sys->whepUrl, "rtc/v1/whip-play/?app=%s&stream=%s");
 }

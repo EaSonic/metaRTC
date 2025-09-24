@@ -11,6 +11,7 @@
 #include <yangutil/sys/YangCUrl.h>
 #include <yangutil/sys/YangCString.h>
 #include <yangutil/sys/YangHttp.h>
+#include "YangMiniSdp.h"
 
 #define Yang_SDP_BUFFERLEN 1024*12
 
@@ -93,19 +94,39 @@ int32_t yang_whip_connectPeer(YangMetaConnection *conn,YangPeer* peer,char* url)
 	return err;
 }
 
-int32_t yang_whip_connectWhipWhepServer(YangPeer* peer,char* url){
+int32_t yang_whip_connectWhipWhepServer(YangPeer* peer,char* url,int use_minisdp){
 	YangMetaConnection conn={0};
-    yang_create_metaConnection(&conn);
+	yang_create_metaConnection(&conn);
 
-	if(peer==NULL)
-		return  ERROR_RTC_PEERCONNECTION;
+	if(peer==NULL) return ERROR_RTC_PEERCONNECTION;
+	if(conn.isConnected(peer)) return Yang_Ok;
 
+	int err=Yang_Ok;
+	char *localSdp=NULL;
+	char *remoteSdp=NULL;
 
-	if(conn.isConnected(peer))
-		return Yang_Ok;
+	if((err=conn.createOffer(peer, &localSdp))!=Yang_Ok){
+		return yang_error_wrap(err,"create offer fail!");
+	}
+	if(localSdp) conn.setLocalDescription(peer,localSdp);
 
-	return yang_whip_connectPeer(&conn,peer,url);
+	if(use_minisdp>0){
+		if(yang_minisdp_getSignal(localSdp,url,&remoteSdp)==Yang_Ok){
+			if(remoteSdp) conn.setRemoteDescription(peer,remoteSdp);
+			yang_free(localSdp);
+			yang_free(remoteSdp);
+			return Yang_Ok;
+		}
+		// minisdp failed, fallback to HTTP
+	}
 
+	if ((err=yang_whip_getSignal(&conn,peer,url,&remoteSdp,localSdp))  == Yang_Ok) {
+		if(remoteSdp) conn.setRemoteDescription(peer,remoteSdp);
+	}
+
+	yang_free(localSdp);
+	yang_free(remoteSdp);
+	return err;
 }
 
 int32_t yang_whip_connectSfuServer(YangPeer* peer,char* url,int32_t mediaServer){

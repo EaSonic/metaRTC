@@ -14,6 +14,8 @@
 #if Yang_Enable_Openssl
 #if Yang_Enable_Dtls
 #include <openssl/err.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 SSL_CTX* yang_build_dtls_ctx(YangDtlsSession *dtls, char *role);
 
@@ -103,43 +105,94 @@ int32_t yang_filter_data(YangDtlsSession *dtls, uint8_t *data, int32_t size) {
 }
 
 #define SRTP_MASTER_KEY_KEY_LEN  16
-#define SRTP_MASTER_KEY_SALT_LEN  14
+#define SRTP_MASTER_KEY_SALT_LEN 14
+
+// Optional TLS key log callback (Wireshark). Enable by setting env SSLKEYLOGFILE to a writable path.
+static void yang_ssl_keylog_cb(const SSL *ssl, const char *line) {
+	(void)ssl;
+	const char* path = getenv("SSLKEYLOGFILE");
+	if(!path) return;
+	FILE* f = fopen(path, "a");
+	if(!f) return;
+	fprintf(f, "%s\n", line);
+	fclose(f);
+}
 int32_t yang_get_srtp_key(YangDtlsSession *dtls, char *precv_key, int *precvkeylen,
 		char *psend_key, int *psendkeylen) {
-	int32_t offset = 0;
 	int32_t err = Yang_Ok;
+	const int seg_len = SRTP_MASTER_KEY_KEY_LEN + SRTP_MASTER_KEY_SALT_LEN; // 30
+	uint8_t material[60]; // client(30)+server(30)
+	yang_memset(material,0,sizeof(material));
 
-	char* send_key=psend_key;
-	char* recv_key=precv_key;
-
-	static const char *dtls_srtp_lable = "EXTRACTOR-dtls_srtp";
-	uint8_t material[SRTP_MASTER_KEY_LEN * 2] = { 0 }; // client(SRTP_MASTER_KEY_KEY_LEN + SRTP_MASTER_KEY_SALT_LEN) + server
-
+	static const char *label = "EXTRACTOR-dtls_srtp";
 	if (!SSL_export_keying_material(dtls->ssl, material, sizeof(material),
-			dtls_srtp_lable, yang_strlen(dtls_srtp_lable), NULL, 0, 0)) {
-		return yang_error_wrap(ERROR_RTC_SRTP_INIT, "SSL export key r0=%lu",
-				ERR_get_error());
+			label, yang_strlen(label), NULL, 0, 0)) {
+		return yang_error_wrap(ERROR_RTC_SRTP_INIT, "SSL export key r0=%lu", ERR_get_error());
 	}
 
-	if(dtls->isControled){
-		send_key=precv_key;
-		recv_key=psend_key;
+	if(getenv("YANG_DUMP_DTLS_SRTP")){
+		char line[256]; char* w=line; int i;
+		for(i=0;i<sizeof(material);i++){
+			int n=sprintf(w,"%02X",material[i]); w+=n; if(i+1<sizeof(material)) *w++=' ';
+			if((i+1)%30==0){ *w=0; yang_trace("SRTP exporter[%2d-%2d]: %s", i-29,i,line); w=line; }
+		}
+		if(w!=line){ *w=0; yang_trace("SRTP exporter(rem): %s", line); }
+	}else{
+		yang_trace("SRTP exporter first30(client?): %02X %02X %02X %02X ... %02X %02X", material[0],material[1],material[2],material[3],material[28],material[29]);
+		yang_trace("SRTP exporter last30 (server?): %02X %02X %02X %02X ... %02X %02X", material[30],material[31],material[32],material[33],material[58],material[59]);
 	}
 
-	yang_memcpy(send_key, material, SRTP_MASTER_KEY_KEY_LEN);
-	offset += SRTP_MASTER_KEY_KEY_LEN;
+	yangbool server_first = yangfalse;
+	const char* order = getenv("YANG_SRTP_MATERIAL_ORDER");
+	if(order && (order[0]=='s' || order[0]=='S')) server_first=yangtrue;
+	yang_trace("DTLS-SRTP material order: %s", server_first?"server_first":"client_first");
 
-	yang_memcpy(recv_key, material + offset, SRTP_MASTER_KEY_KEY_LEN);
-	offset += SRTP_MASTER_KEY_KEY_LEN;
+	uint8_t client_key[SRTP_MASTER_KEY_KEY_LEN];
+	uint8_t server_key[SRTP_MASTER_KEY_KEY_LEN];
+	uint8_t client_salt[SRTP_MASTER_KEY_SALT_LEN];
+	uint8_t server_salt[SRTP_MASTER_KEY_SALT_LEN];
 
-	yang_memcpy(send_key + SRTP_MASTER_KEY_KEY_LEN, material + offset,SRTP_MASTER_KEY_SALT_LEN);
-	offset += SRTP_MASTER_KEY_SALT_LEN;
+	if(!server_first){
+		yang_memcpy(client_key, material, 16);
+		yang_memcpy(server_key, material+16, 16);
+		yang_memcpy(client_salt, material+32, 14);
+		yang_memcpy(server_salt, material+46, 14);
+	}else{
+		yang_memcpy(server_key, material, 16);
+		yang_memcpy(client_key, material+16, 16);
+		yang_memcpy(server_salt, material+32, 14);
+		yang_memcpy(client_salt, material+46, 14);
+	}
 
-	yang_memcpy(recv_key + SRTP_MASTER_KEY_KEY_LEN, material + offset,SRTP_MASTER_KEY_SALT_LEN);
+	if (SSL_is_server(dtls->ssl)) {
+		yang_memcpy(psend_key, server_key, 16); yang_memcpy(psend_key+16, server_salt,14);
+		yang_memcpy(precv_key, client_key, 16); yang_memcpy(precv_key+16, client_salt,14);
+		yang_trace("DTLS-SRTP direction: send=server_write, recv=client_write");
+	} else {
+		yang_memcpy(psend_key, client_key, 16); yang_memcpy(psend_key+16, client_salt,14);
+		yang_memcpy(precv_key, server_key, 16); yang_memcpy(precv_key+16, server_salt,14);
+		yang_trace("DTLS-SRTP direction: send=client_write, recv=server_write");
+	}
 
-	*precvkeylen = SRTP_MASTER_KEY_KEY_LEN + SRTP_MASTER_KEY_SALT_LEN;
-	*psendkeylen = SRTP_MASTER_KEY_KEY_LEN + SRTP_MASTER_KEY_SALT_LEN;
+	const char* swap = getenv("YANG_SRTP_SWAP_KEYS");
+	if (swap && swap[0] == '1') {
+		uint8_t tmp[60];
+		yang_memcpy(tmp, psend_key, seg_len);
+		yang_memcpy(psend_key, precv_key, seg_len);
+		yang_memcpy(precv_key, tmp, seg_len);
+		yang_trace("SRTP key mapping swapped due to YANG_SRTP_SWAP_KEYS=1");
+	}
 
+	*precvkeylen = seg_len;
+	*psendkeylen = seg_len;
+
+	const char* tls_role = SSL_is_server(dtls->ssl)?"server":"client";
+	yang_trace("DTLS SRTP keys exported (tls_role=%s): recv_key_len=%d, send_key_len=%d", tls_role, *precvkeylen, *psendkeylen);
+	yang_trace("SRTP key prefixes (hex): send=%02X%02X%02X%02X|%02X%02X%02X%02X recv=%02X%02X%02X%02X|%02X%02X%02X%02X",
+			   (uint8_t)psend_key[0], (uint8_t)psend_key[1], (uint8_t)psend_key[2], (uint8_t)psend_key[3],
+			   (uint8_t)psend_key[16], (uint8_t)psend_key[17], (uint8_t)psend_key[18], (uint8_t)psend_key[19],
+			   (uint8_t)precv_key[0], (uint8_t)precv_key[1], (uint8_t)precv_key[2], (uint8_t)precv_key[3],
+			   (uint8_t)precv_key[16], (uint8_t)precv_key[17], (uint8_t)precv_key[18], (uint8_t)precv_key[19]);
 	return err;
 }
 
@@ -296,8 +349,13 @@ SSL_CTX* yang_build_dtls_ctx(YangDtlsSession *dtls, char *role) {
 	SSL_CTX_set_verify_depth(dtls_ctx, 4);
 	SSL_CTX_set_read_ahead(dtls_ctx, 1);
 
-	if (SSL_CTX_set_tlsext_use_srtp(dtls_ctx, "SRTP_AES128_CM_SHA1_80")	!= 0)
+	if (SSL_CTX_set_tlsext_use_srtp(dtls_ctx, "SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80")	!= 0)
 		yang_error("SSL_CTX_set_tlsext_use_srtp error");
+
+	if(getenv("SSLKEYLOGFILE")){
+		SSL_CTX_set_keylog_callback(dtls_ctx, yang_ssl_keylog_cb);
+		yang_trace("DTLS keylog callback enabled (SSLKEYLOGFILE)");
+	}
 
 
 	return dtls_ctx;
@@ -321,9 +379,23 @@ int32_t yang_on_handshake_done(YangDtlsSession *dtls) {
 		return err;
 	}
 
-	if ((err = yang_create_srtp(dtls->srtp, recv_key, recvKeyLen, send_key,	sendKeyLen)) != Yang_Ok) {
+	// Log local TLS role for clarity
+	yang_trace("DTLS local TLS role: %s", SSL_is_server(dtls->ssl)?"server":"client");
+	// Query the negotiated SRTP protection profile and choose policy accordingly
+	const SRTP_PROTECTION_PROFILE* srtp_profile = SSL_get_selected_srtp_profile(dtls->ssl);
+	const char* profile_name = srtp_profile ? srtp_profile->name : "SRTP_AES128_CM_SHA1_80";
+	// Optional override for debugging interop (e.g., peer sends 32-bit tag while 80 selected)
+	const char* force = getenv("YANG_SRTP_FORCE_PROFILE");
+	if (force && force[0]) {
+		if (force[0] == '3') profile_name = "SRTP_AES128_CM_SHA1_32";
+		else if (force[0] == '8') profile_name = "SRTP_AES128_CM_SHA1_80";
+	}
+	yang_trace("DTLS selected SRTP profile: %s", profile_name);
+
+	if ((err = yang_create_srtp_with_profile(dtls->srtp, recv_key, recvKeyLen, send_key, sendKeyLen, profile_name)) != Yang_Ok) {
 		return yang_error_wrap(err, "srtp init");
 	}
+	yang_trace("DTLS handshake done, SRTP contexts ready (role=%s)", dtls->isControled?"server(passive)":"client(active)");
 	// Change to done state.
 	dtls->state = YangDtlsStateClientDone;
 	return err;

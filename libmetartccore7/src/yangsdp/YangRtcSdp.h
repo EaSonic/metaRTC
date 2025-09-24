@@ -69,4 +69,7 @@ void yang_destroy_rtcsdp(YangSdp* sdp);
 int32_t yang_rtcsdp_encode(YangSdp *sdp, YangBuffer *os);
 int32_t yang_rtcsdp_parse(YangSdp* sdp,char* sdp_str);
 
+// Accessor for session-level DTLS role (first media desc's a=setup)
+char* yang_rtcsdp_get_dtls_role(YangSdp *sdp);
+
 #endif

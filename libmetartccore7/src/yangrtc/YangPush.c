@@ -13,8 +13,10 @@ int32_t yang_send_avpacket(YangRtcSession *session, YangRtpPacket *pkt,	YangBuff
 
 	if (session->push)	session->push->cache_nack(session->push->pubStream, pkt, pbuf->data,nn_encrypt);
 #if Yang_Enable_Dtls
-	if ((err = yang_enc_rtp(&session->context.srtp, pbuf->data, &nn_encrypt)) != Yang_Ok) {
-		return yang_error_wrap(err, "srtp protect");
+	if (!session->context.disableSrtp) {
+		if ((err = yang_enc_rtp(&session->context.srtp, pbuf->data, &nn_encrypt)) != Yang_Ok) {
+			return yang_error_wrap(err, "srtp protect");
+		}
 	}
 #endif
 
@@ -25,8 +27,10 @@ int32_t yang_send_nackpacket(YangRtcContext *context, char *data, int32_t nb) {
 	int32_t err = Yang_Ok;
 	int32_t nn_encrypt = nb;
 #if Yang_Enable_Dtls
-	if ((err = yang_enc_rtp(&context->srtp, data, &nn_encrypt)) != Yang_Ok) {
-		return yang_error_wrap(err, "srtp protect");
+	if (!context->disableSrtp) {
+		if ((err = yang_enc_rtp(&context->srtp, data, &nn_encrypt)) != Yang_Ok) {
+			return yang_error_wrap(err, "srtp protect");
+		}
 	}
 #endif
 	return context->sock->write(&context->sock->session, data, nn_encrypt);

@@ -71,6 +71,10 @@ void yang_create_rtcContext(YangRtcContext *context) {
 	yang_create_rtctwcc(&context->twcc);
 #endif
 
+	// Default to SRTP enabled; will be disabled if remote SDP indicates RTP/AVPF (plaintext).
+	context->disableSrtp = yangfalse;
+	context->enableRtpDump = yangfalse;
+
 }
 
 void yang_destroy_rtcContext(YangRtcContext *context) {

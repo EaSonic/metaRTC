@@ -1,0 +1,24 @@
+version: v2.0
+name: minisdp_compile
+on:
+  push:
+  - develop
+  - master
+  mr:
+  - '*'
+resources:
+  repositories:
+  - repository: APD_Quality/TCoder_service
+    name: tcoder
+    ref: master
+extends:
+  template: pipelines/build.yml@tcoder
+  parameters:
+    script: |-
+      set -x
+      yum install -y readline-devel
+      export PATH=/data/bkdevops/apps/cmake/3.9.6/bin:$PATH
+      export CMAKE_HOME=/data/bkdevops/apps/cmake/3.9.6/
+      sh build.sh
+    image: mirrors.tencent.com/ci/tlinux_ci:3.5.1
+    enableSubmodule: true
