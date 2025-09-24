@@ -9,33 +9,42 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   build-essential cmake git pkg-config ca-certificates wget curl bash \
-  libssl-dev libsrtp2-dev libopus-dev libspeexdsp-dev libusrsctp-dev yasm nasm && \
+  libssl-dev libsrtp2-dev libopus-dev libspeexdsp-dev libusrsctp-dev libasound2-dev \
+  yasm nasm && \
   update-ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-# 设置工作目录，宿主源码通过 -v 挂载到 /workspace
-WORKDIR /workspace
+ARG BRANCH=minisdp
+ENV CMAKE_BUILD_TYPE=Release \
+  META_ROOT=/opt/metaRTC
 
-# 可选: 指定编译类型
-ENV CMAKE_BUILD_TYPE=Release
+# 克隆指定分支源码
+RUN git clone --depth 1 --branch ${BRANCH} https://github.com/EaSonic/metaRTC.git ${META_ROOT}
 
-# 使用说明 (镜像内查看: cat /workspace/demo/testRTM/Dockerfile)
-# 1. 构建镜像:
-#    docker build -t metartc-bullseye -f demo/testRTM/Dockerfile .
-# 2. 运行并挂载源码根目录:
-#    docker run --rm -it -v $(pwd):/workspace metartc-bullseye bash
-# 3. 编译:
-#    cd demo/testRTM && mkdir -p build && cd build
-#    cmake .. -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-#    make -j$(nproc)
-# 4. 运行 (示例):
-#    ./testRTM "https://example.com/whip?publisher=xxx" ./dump --flv
+WORKDIR ${META_ROOT}
 
-# 缓存层: 创建空 build 目录(可选)
-RUN mkdir -p /workspace/demo/testRTM/build
+# 构建核心库: metartccore7 / metartc7 / yangwhip7
+RUN set -eux; \
+  for d in libmetartccore7 libmetartc7 libyangwhip7; do \
+  cd ${META_ROOT}/$d; \
+  rm -rf build && mkdir build && cd build; \
+  cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..; \
+  make -j"$(nproc)"; \
+  done; \
+  mkdir -p ${META_ROOT}/bin/lib_release; \
+  cp ${META_ROOT}/libmetartccore7/build/libmetartccore7.a ${META_ROOT}/bin/lib_release/ || true; \
+  cp ${META_ROOT}/libmetartc7/build/libmetartc7.a ${META_ROOT}/bin/lib_release/ || true; \
+  cp ${META_ROOT}/libyangwhip7/build/libyangwhip7.a ${META_ROOT}/bin/lib_release/ || true
 
-## 若需在构建镜像阶段直接编译（可选，默认注释掉）：
-# COPY . /workspace
-# RUN cd demo/testRTM/build && cmake .. && make -j$(nproc)
+# 构建 demo/testRTM
+RUN set -eux; \
+  cd ${META_ROOT}/demo/testRTM; \
+  mkdir -p build && cd build; \
+  cmake -DMETARTC_LIB_DIR=${META_ROOT}/bin/lib_release -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..; \
+  make -j"$(nproc)"; \
+  ls -lh ./testRTM
+
+# 运行提示
+CMD ["/opt/metaRTC/demo/testRTM/build/testRTM", "--help"]
 
 
