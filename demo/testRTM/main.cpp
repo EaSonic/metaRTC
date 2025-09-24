@@ -8,7 +8,7 @@
 #include <yangutil/sys/YangLog.h>
 #include <yangutil/sys/YangTime.h>
 #include <yangutil/yangavinfo.h>
-#include <yangrtc/YangRtcContext.h>
+#include <yangutil/yangavinfotype.h>
 #include "RtpFlvWriter.h"
 
 static FILE* g_videoAnnexB=NULL;

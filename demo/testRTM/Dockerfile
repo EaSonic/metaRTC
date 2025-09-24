@@ -15,6 +15,10 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 ARG BRANCH=minisdp
+ARG CACHEBUST=1   # 新增
+RUN echo "cachebust=$CACHEBUST" && \
+  git clone --depth 1 --branch ${BRANCH} https://github.com/EaSonic/metaRTC.git ${META_ROOT}
+
 ENV CMAKE_BUILD_TYPE=Release \
   META_ROOT=/opt/metaRTC
 
