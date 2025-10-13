@@ -161,9 +161,10 @@ static void yang_rtcconn_init(YangRtcSession *session, YangRtcDirection role) {
 	session->isSendStun = yangfalse;
 
 #if Yang_Enable_Dtls
-	yang_create_rtcdtls(session->context.dtls,session->isControlled);
-	session->context.dtls->session.sslCallback=&session->context.peerCallback->sslCallback;
-	session->context.dtls->session.uid=session->context.peerInfo->uid;
+	// TODO: Eason: Check encrypt_switch and decide to create dtls or not.
+	// yang_create_rtcdtls(session->context.dtls,session->isControlled);
+	// session->context.dtls->session.sslCallback=&session->context.peerCallback->sslCallback;
+	// session->context.dtls->session.uid=session->context.peerInfo->uid;
 #endif
 
 

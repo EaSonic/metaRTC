@@ -14,6 +14,31 @@
 #include <yangutil/sys/YangLog.h>
 #include <yangutil/sys/YangEndian.h>
 #include <yangavutil/video/YangMeta.h>
+#include <stdio.h>
+
+// Dump helpers: open-once per uid, enabled via env EASON_DUMP_VIDEO
+static FILE* s_h264_dump_fp = NULL;
+static uint32_t s_h264_dump_uid = 0;
+static int s_h264_dump_checked = 0;
+static int s_h264_dump_enabled = 0;
+static FILE* h264_dump_fp(uint32_t uid) {
+	if (!s_h264_dump_checked) {
+		const char* ev = getenv("EASON_DUMP_VIDEO");
+		s_h264_dump_enabled = (ev && (*ev=='1' || *ev=='y' || *ev=='Y')) ? 1 : 0;
+		s_h264_dump_checked = 1;
+	}
+	if (!s_h264_dump_enabled) return NULL;
+	if (!s_h264_dump_fp || s_h264_dump_uid != uid) {
+		if (s_h264_dump_fp) { fclose(s_h264_dump_fp); s_h264_dump_fp=NULL; }
+		char path[128]; yang_snprintf(path, sizeof(path)-1, "h264_dump_%u.h264", (unsigned)uid);
+		s_h264_dump_fp = fopen(path, "wb");
+		s_h264_dump_uid = uid;
+	}
+	return s_h264_dump_fp;
+}
+static void h264_dump_close() {
+	if (s_h264_dump_fp) { fclose(s_h264_dump_fp); s_h264_dump_fp=NULL; }
+}
 
 
 static void yang_clear_cached_video(YangPullTrackH264 *track) {
@@ -56,6 +81,33 @@ static int32_t yang_put_frame_video(YangRtcContext *context,
 	track->videoFrame.payload = (uint8_t*) p;
 	track->videoFrame.nb = nb;
 	track->videoFrame.pts = timestamp;
+
+	// Optional H264 Annex B dumper for ffplay, enabled via env var EASON_DUMP_VIDEO
+	do {
+		FILE* fp = h264_dump_fp(track->uid);
+		if (fp) {
+#if Yang_Rtp_I_Withmeta
+			// Buffer layout: [0x17/0x27][00 00 00 01 NAL]...
+			if (nb > 1) fwrite(p+1, 1, (size_t)(nb-1), fp);
+#else
+			// Buffer layout: [0x17/0x27][len(4)][NAL] ... Convert to Annex B
+			if (nb > 1) {
+				const unsigned char* q = (const unsigned char*)p + 1;
+				int remain = nb - 1;
+				while (remain >= 4) {
+					uint32_t len = (uint32_t)yang_get_be32((uint8_t*)q);
+					q += 4; remain -= 4;
+					if ((int)len > remain || len == 0) break; // safety
+					static const unsigned char sc[4] = {0x00,0x00,0x00,0x01};
+					fwrite(sc, 1, 4, fp);
+					fwrite(q, 1, len, fp);
+					q += len; remain -= (int)len;
+				}
+			}
+#endif
+		}
+	} while(0);
+
 	yang_pulltrack_receiveVideo(context,&track->videoFrame);
 
 	return Yang_Ok;
@@ -454,6 +506,7 @@ void yang_destroy_pullTrackH264(YangPullTrackH264 *track) {
 	yang_free(track->video_buffer);
 	yang_reset_h2645_stap(&track->stapData);
 	yang_destroy_stap(&track->stapData);
+	h264_dump_close();
 }
 
 

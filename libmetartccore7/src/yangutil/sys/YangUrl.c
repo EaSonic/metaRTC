@@ -144,7 +144,7 @@ int32_t yang_http_url_parse(YangIpFamilyType familyType,char* url,YangUrlData* d
         data->port=1985;
 	} else if (len == 6 && yang_memcmp(url, "webrtc", 6) == 0) {
         data->netType = Yang_Webrtc;
-        data->port=1985;
+        data->port=8000;
 	} else {
 		return 1;
 	}
@@ -170,6 +170,10 @@ int32_t yang_http_url_parse(YangIpFamilyType familyType,char* url,YangUrlData* d
 
 	if (hostlen < 256) {
 		 yang_memcpy(s1,p,hostlen);
+		 // copy to data->host
+		 yang_memset(data->host,0,sizeof(data->host));
+		 yang_memcpy(data->host,s1,hostlen);
+	
 		 yang_memset(data->server,0,sizeof(data->server));
 		 yang_getIp(familyType,s1,data->server);
 

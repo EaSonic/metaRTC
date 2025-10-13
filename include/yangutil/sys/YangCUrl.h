@@ -14,6 +14,7 @@
 typedef struct {
 	int32_t netType;
 	int32_t port;
+	char host[256];
 	char server[30];
 	char app[20];
 	char stream[Yang_StreamName_Lenght];

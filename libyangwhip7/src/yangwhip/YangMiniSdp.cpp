@@ -23,10 +23,10 @@
 static std::string format_webrtc_url(const YangUrlData& url){
     char buf[256];
     yang_memset(buf,0,sizeof(buf));
-    // if(url.port>0)
-    //     yang_snprintf(buf,sizeof(buf)-1,"webrtc://%s:%d/%s/%s",url.server,url.port,url.app,url.stream);
-    // else
-    yang_snprintf(buf,sizeof(buf)-1,"webrtc://%s/%s/%s",url.server,url.app,url.stream);
+    yang_trace("format_webrtc_url: host=%s, server=%s, port=%d, app=%s, stream=%s", url.host, url.server, url.port, url.app, url.stream);
+
+    yang_snprintf(buf,sizeof(buf)-1,"webrtc://%s:%d/%s",url.host,url.port,url.stream);
+    
     return std::string(buf);
 }
 

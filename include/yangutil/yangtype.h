@@ -57,7 +57,8 @@ typedef enum{
 
 typedef enum {
 	Yang_IpFamilyType_IPV4,
-	Yang_IpFamilyType_IPV6
+	Yang_IpFamilyType_IPV6,
+	Yang_IpFamilyType_NONE
 } YangIpFamilyType;
 
 
